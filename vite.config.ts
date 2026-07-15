@@ -10,11 +10,11 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+      includeAssets: ['favicon.png', 'apple-touch-icon.png', 'logo.jpg'],
       manifest: {
-        name: 'Souvenir Cefalù',
-        short_name: 'Souvenir',
-        description: 'Gestione vendite e magazzino souvenir Cefalù',
+        name: 'La Maison de Rose',
+        short_name: 'Maison de Rose',
+        description: 'Gestione vendite e magazzino - La Maison de Rose',
         theme_color: '#0b4468',
         background_color: '#0b4468',
         display: 'standalone',
@@ -41,7 +41,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,jpg,svg,woff,woff2}'],
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.pathname.startsWith('/rest/') || url.hostname.endsWith('supabase.co'),

@@ -19,7 +19,7 @@ export function Login() {
   return (
     <div className="flex h-dvh flex-col items-center justify-center bg-slate-50 px-6">
       <div className="w-full max-w-xs">
-        <h1 className="mb-8 text-center text-2xl font-semibold text-[#0b4468]">Souvenir Cefalù</h1>
+        <img src="/logo.jpg" alt="La Maison de Rose" className="mx-auto mb-6 h-40 w-40 rounded-2xl object-cover" />
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <input
             type="email"
