@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { Vendi } from './screens/Vendi'
+import { Registra } from './screens/Registra'
 import { Magazzino } from './screens/Magazzino'
 import { Report } from './screens/Report'
 import { Login } from './screens/Login'
@@ -8,16 +8,16 @@ import { TopBar } from './components/TopBar'
 import { supabase } from './lib/supabaseClient'
 import { startSyncEngine } from './lib/sync'
 
-type Tab = 'vendi' | 'magazzino' | 'report'
+type Tab = 'registra' | 'magazzino' | 'report'
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: 'vendi', label: 'Vendi', icon: '🛒' },
+  { id: 'registra', label: 'Registra', icon: '📝' },
   { id: 'magazzino', label: 'Magazzino', icon: '📦' },
   { id: 'report', label: 'Report', icon: '📊' },
 ]
 
 export default function App() {
-  const [tab, setTab] = useState<Tab>('vendi')
+  const [tab, setTab] = useState<Tab>('registra')
   const [session, setSession] = useState<Session | null | undefined>(undefined)
 
   useEffect(() => {
@@ -38,7 +38,7 @@ export default function App() {
     <div className="flex h-dvh flex-col bg-slate-50">
       <TopBar />
       <main className="flex-1 overflow-hidden" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 56px)' }}>
-        {tab === 'vendi' && <Vendi />}
+        {tab === 'registra' && <Registra />}
         {tab === 'magazzino' && <Magazzino />}
         {tab === 'report' && <Report />}
       </main>

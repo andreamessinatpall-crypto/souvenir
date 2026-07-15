@@ -11,6 +11,7 @@ import { transferToStore } from '../../lib/products'
 import { SupplierForm } from './SupplierForm'
 
 const NUOVO_FORNITORE = '__nuovo__'
+const NUOVA_CATEGORIA = '__nuova__'
 
 interface ProductFormProps {
   product?: Product
@@ -22,8 +23,13 @@ interface ProductFormProps {
 
 export function ProductForm({ product, defaultFornitoreId, onSave, onDelete, onClose }: ProductFormProps) {
   const suppliers = useLiveQuery(() => db.suppliers.orderBy('nome').toArray(), [])
+  const categorie = useLiveQuery(
+    () => db.products.orderBy('categoria').uniqueKeys() as unknown as Promise<string[]>,
+    [],
+  )
   const [nome, setNome] = useState(product?.nome ?? '')
   const [categoria, setCategoria] = useState(product?.categoria ?? '')
+  const [nuovaCategoria, setNuovaCategoria] = useState(false)
   const [prezzo, setPrezzo] = useState(product ? formatEuroInput(product.prezzo) : '')
   const [quantitaNegozio, setQuantitaNegozio] = useState(product?.quantita_negozio?.toString() ?? '0')
   const [quantitaScorta, setQuantitaScorta] = useState(product?.quantita_scorta?.toString() ?? '0')
@@ -38,7 +44,8 @@ export function ProductForm({ product, defaultFornitoreId, onSave, onDelete, onC
   const [daSpostare, setDaSpostare] = useState(1)
   const [spostando, setSpostando] = useState(false)
 
-  const valido = nome.trim().length > 0 && parseEuroInput(prezzo) >= 0 && fornitoreId !== ''
+  const valido =
+    nome.trim().length > 0 && parseEuroInput(prezzo) >= 0 && fornitoreId !== '' && categoria.trim() !== ''
 
   async function handleSave() {
     if (!valido || saving) return
@@ -46,7 +53,7 @@ export function ProductForm({ product, defaultFornitoreId, onSave, onDelete, onC
     try {
       await onSave({
         nome: nome.trim(),
-        categoria: categoria.trim() || undefined,
+        categoria: categoria.trim(),
         prezzo: parseEuroInput(prezzo),
         quantita_negozio: Number.parseInt(quantitaNegozio, 10) || 0,
         quantita_scorta: Number.parseInt(quantitaScorta, 10) || 0,
@@ -146,14 +153,50 @@ export function ProductForm({ product, defaultFornitoreId, onSave, onDelete, onC
             )}
           </Field>
 
-          <Field label="Categoria (opzionale)">
-            <input
-              type="text"
-              value={categoria}
-              onChange={(e) => setCategoria(e.target.value)}
-              placeholder="Es. Calamite"
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-lg"
-            />
+          <Field label="Etichetta">
+            {nuovaCategoria || categorie?.length === 0 ? (
+              <div className="flex flex-col gap-2">
+                <input
+                  type="text"
+                  value={categoria}
+                  onChange={(e) => setCategoria(e.target.value)}
+                  placeholder="Es. Calamite"
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 text-lg"
+                  autoFocus
+                />
+                {categorie && categorie.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNuovaCategoria(false)
+                      setCategoria('')
+                    }}
+                    className="self-start text-sm font-medium text-slate-500"
+                  >
+                    ← Scegli tra quelle esistenti
+                  </button>
+                )}
+              </div>
+            ) : (
+              <select
+                value={categoria}
+                onChange={(e) => {
+                  if (e.target.value === NUOVA_CATEGORIA) setNuovaCategoria(true)
+                  else setCategoria(e.target.value)
+                }}
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-lg"
+              >
+                <option value="" disabled>
+                  Seleziona un&apos;etichetta
+                </option>
+                {categorie?.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+                <option value={NUOVA_CATEGORIA}>+ Nuova etichetta</option>
+              </select>
+            )}
           </Field>
 
           <Field label="Prezzo di vendita">
