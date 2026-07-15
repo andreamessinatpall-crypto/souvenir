@@ -36,6 +36,24 @@ export async function transferToStore(id: string, quantita: number): Promise<voi
   await enqueueSync('products', id, 'update')
 }
 
+export async function registraAcquisti(lines: { productId: string; quantita: number }[]): Promise<void> {
+  const now = Date.now()
+  await db.transaction('rw', db.products, async () => {
+    for (const line of lines) {
+      if (line.quantita <= 0) continue
+      const product = await db.products.get(line.productId)
+      if (!product) continue
+      await db.products.update(line.productId, {
+        quantita_scorta: product.quantita_scorta + line.quantita,
+        updated_at: now,
+      })
+    }
+  })
+  for (const line of lines) {
+    if (line.quantita > 0) await enqueueSync('products', line.productId, 'update')
+  }
+}
+
 function prefixFrom(s: string, len: number): string {
   const clean = s.toUpperCase().replace(/[^A-Z0-9]/g, '')
   return clean.slice(0, len) || 'GEN'

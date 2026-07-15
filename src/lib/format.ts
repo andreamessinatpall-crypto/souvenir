@@ -52,3 +52,10 @@ export function dayKeyToMs(key: string): number {
 export function todayKey(): string {
   return dayKey(Date.now())
 }
+
+export function addDaysToKey(key: string, delta: number): string {
+  const ms = dayKeyToMs(key)
+  const d = new Date(ms)
+  d.setDate(d.getDate() + delta)
+  return dayKey(d.getTime())
+}

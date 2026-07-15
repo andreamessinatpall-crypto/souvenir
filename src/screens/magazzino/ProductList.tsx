@@ -5,21 +5,30 @@ import { createProduct, deleteProduct, updateProduct } from '../../lib/products'
 import { formatEUR } from '../../lib/format'
 import type { Product } from '../../lib/types'
 import { ProductForm } from './ProductForm'
+import { RegistraAcquisto } from './RegistraAcquisto'
 import { EmptyState } from '../../components/EmptyState'
 
 export function ProductList() {
   const products = useLiveQuery(() => db.products.orderBy('nome').toArray(), [])
   const [editing, setEditing] = useState<Product | 'new' | null>(null)
+  const [showAcquisto, setShowAcquisto] = useState(false)
 
   return (
     <div className="flex h-full flex-col">
-      <div className="px-4 pt-4">
+      <div className="flex flex-col gap-2 px-4 pt-4">
         <button
           type="button"
           onClick={() => setEditing('new')}
           className="w-full rounded-2xl bg-[#0b4468] py-4 text-lg font-semibold text-white active:bg-[#093652]"
         >
           + Nuovo prodotto
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowAcquisto(true)}
+          className="w-full rounded-2xl border border-slate-300 py-3 font-semibold text-slate-700"
+        >
+          📥 Registra acquisto
         </button>
       </div>
 
@@ -90,6 +99,8 @@ export function ProductList() {
           }
         />
       )}
+
+      {showAcquisto && <RegistraAcquisto onClose={() => setShowAcquisto(false)} />}
     </div>
   )
 }
