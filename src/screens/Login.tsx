@@ -17,9 +17,9 @@ export function Login() {
   }
 
   return (
-    <div className="flex h-dvh flex-col items-center justify-center bg-[#0b4468] px-6">
+    <div className="flex h-dvh flex-col items-center justify-center bg-slate-50 px-6">
       <div className="w-full max-w-xs">
-        <h1 className="mb-8 text-center text-2xl font-semibold text-white">Souvenir Cefalù</h1>
+        <h1 className="mb-8 text-center text-2xl font-semibold text-[#0b4468]">Souvenir Cefalù</h1>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <input
             type="email"
@@ -28,7 +28,7 @@ export function Login() {
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="rounded-xl border-0 px-4 py-3 text-lg"
+            className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-lg text-slate-900 placeholder-slate-400"
             required
           />
           <input
@@ -37,14 +37,14 @@ export function Login() {
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="rounded-xl border-0 px-4 py-3 text-lg"
+            className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-lg text-slate-900 placeholder-slate-400"
             required
           />
-          {error && <p className="text-center text-sm text-orange-200">{error}</p>}
+          {error && <p className="text-center text-sm font-medium text-red-600">{error}</p>}
           <button
             type="submit"
             disabled={loading}
-            className="mt-2 rounded-2xl bg-white py-4 text-lg font-semibold text-[#0b4468] disabled:opacity-60"
+            className="mt-2 rounded-2xl bg-[#0b4468] py-4 text-lg font-semibold text-white disabled:opacity-60"
           >
             {loading ? 'Accesso...' : 'Accedi'}
           </button>
