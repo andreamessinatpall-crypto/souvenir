@@ -4,7 +4,7 @@ import { Vendi } from './screens/Vendi'
 import { Magazzino } from './screens/Magazzino'
 import { Report } from './screens/Report'
 import { Login } from './screens/Login'
-import { SyncIndicator } from './components/SyncIndicator'
+import { TopBar } from './components/TopBar'
 import { supabase } from './lib/supabaseClient'
 import { startSyncEngine } from './lib/sync'
 
@@ -36,8 +36,8 @@ export default function App() {
 
   return (
     <div className="flex h-dvh flex-col bg-slate-50">
-      <SyncIndicator />
-      <main className="flex-1 overflow-hidden">
+      <TopBar />
+      <main className="flex-1 overflow-hidden" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 56px)' }}>
         {tab === 'vendi' && <Vendi />}
         {tab === 'magazzino' && <Magazzino />}
         {tab === 'report' && <Report />}

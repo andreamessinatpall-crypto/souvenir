@@ -19,12 +19,9 @@ export function SyncIndicator() {
   const synced = online && pendingCount === 0
 
   return (
-    <div
-      className="pointer-events-none fixed right-3 z-10 flex items-center gap-1.5"
-      style={{ top: 'calc(env(safe-area-inset-top) + 8px)' }}
+    <span
+      className={`h-2.5 w-2.5 shrink-0 rounded-full ${synced ? 'bg-green-500' : 'bg-slate-300'}`}
       title={synced ? 'Sincronizzato' : 'In attesa di rete'}
-    >
-      <span className={`h-2.5 w-2.5 rounded-full ${synced ? 'bg-green-500' : 'bg-slate-300'}`} />
-    </div>
+    />
   )
 }
