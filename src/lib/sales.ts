@@ -9,7 +9,7 @@ export interface CartLine {
 export async function createSale(lines: CartLine[], metodo_pagamento: MetodoPagamento): Promise<string> {
   const saleId = uuid()
   const now = Date.now()
-  const totale = lines.reduce((sum, line) => sum + line.product.prezzo * line.quantita, 0)
+  const totale = lines.reduce((sum, line) => sum + (line.product.prezzo ?? 0) * line.quantita, 0)
 
   const saleItemIds: string[] = []
 
@@ -25,7 +25,7 @@ export async function createSale(lines: CartLine[], metodo_pagamento: MetodoPaga
         product_id: line.product.id,
         nome_prodotto: line.product.nome,
         quantita: line.quantita,
-        prezzo_unitario: line.product.prezzo,
+        prezzo_unitario: line.product.prezzo ?? 0,
       })
 
       const current = await db.products.get(line.product.id)

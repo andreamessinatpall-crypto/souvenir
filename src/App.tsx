@@ -7,6 +7,7 @@ import { Login } from './screens/Login'
 import { TopBar } from './components/TopBar'
 import { supabase } from './lib/supabaseClient'
 import { pullIfLocalEmpty, startSyncEngine } from './lib/sync'
+import { backfillMissingCodici } from './lib/products'
 
 type Tab = 'registra' | 'magazzino' | 'report'
 
@@ -31,11 +32,14 @@ export default function App() {
     if (!session) return
     let cancelled = false
     let stopSyncEngine: (() => void) | undefined
-    pullIfLocalEmpty().finally(() => {
-      if (cancelled) return
-      setPulling(false)
-      stopSyncEngine = startSyncEngine()
-    })
+    pullIfLocalEmpty()
+      .then(() => backfillMissingCodici())
+      .catch((err) => console.error('backfill codici fallito', err))
+      .finally(() => {
+        if (cancelled) return
+        setPulling(false)
+        stopSyncEngine = startSyncEngine()
+      })
     return () => {
       cancelled = true
       stopSyncEngine?.()

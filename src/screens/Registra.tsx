@@ -4,6 +4,8 @@ import { db } from '../lib/db'
 import { createSale, type CartLine } from '../lib/sales'
 import type { Product } from '../lib/types'
 import { EmptyState } from '../components/EmptyState'
+import { formatDateLong } from '../lib/format'
+import { StoricoVendite } from './registra/StoricoVendite'
 
 const SENZA_ETICHETTA = 'Senza etichetta'
 
@@ -12,6 +14,7 @@ export function Registra() {
   const [quantities, setQuantities] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
   const [confirmedMessage, setConfirmedMessage] = useState(false)
+  const [showStorico, setShowStorico] = useState(false)
 
   const groups = useMemo(() => {
     if (!products) return []
@@ -57,6 +60,17 @@ export function Registra() {
 
   return (
     <div className="flex h-full flex-col">
+      <div className="flex items-center justify-between px-4 pt-4">
+        <p className="text-sm font-medium text-slate-500">{formatDateLong(Date.now())}</p>
+        <button
+          type="button"
+          onClick={() => setShowStorico(true)}
+          className="rounded-full border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600"
+        >
+          📅 Storico
+        </button>
+      </div>
+
       <div className="flex-1 overflow-y-auto px-4 py-4">
         {products?.length === 0 && (
           <EmptyState icon="📦" message="Nessun prodotto in magazzino. Aggiungine uno dalla sezione Magazzino." />
@@ -121,6 +135,8 @@ export function Registra() {
           </div>
         </div>
       )}
+
+      {showStorico && <StoricoVendite onClose={() => setShowStorico(false)} />}
     </div>
   )
 }

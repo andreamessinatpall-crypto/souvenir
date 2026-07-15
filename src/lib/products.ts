@@ -35,3 +35,32 @@ export async function transferToStore(id: string, quantita: number): Promise<voi
   })
   await enqueueSync('products', id, 'update')
 }
+
+function prefixFrom(s: string, len: number): string {
+  const clean = s.toUpperCase().replace(/[^A-Z0-9]/g, '')
+  return clean.slice(0, len) || 'GEN'
+}
+
+export function generateCodice(tipologia: string, nome: string, existingCodici: Iterable<string>): string {
+  const base = `${prefixFrom(tipologia, 3)}-${prefixFrom(nome, 3)}`
+  const used = new Set(existingCodici)
+  let n = 1
+  let codice = `${base}-${String(n).padStart(3, '0')}`
+  while (used.has(codice)) {
+    n += 1
+    codice = `${base}-${String(n).padStart(3, '0')}`
+  }
+  return codice
+}
+
+export async function backfillMissingCodici(): Promise<void> {
+  const products = await db.products.toArray()
+  const existing = new Set(products.map((p) => p.codice).filter((c): c is string => !!c))
+  for (const p of products) {
+    if (p.codice) continue
+    const codice = generateCodice(p.categoria || 'Generale', p.nome, existing)
+    existing.add(codice)
+    await db.products.update(p.id, { codice })
+    await enqueueSync('products', p.id, 'update')
+  }
+}

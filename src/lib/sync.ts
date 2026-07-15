@@ -31,9 +31,10 @@ const TABLE_HANDLERS: Record<
     dexieTable: 'products',
     toRow: (p) => ({
       id: p.id,
+      codice: p.codice ?? null,
       nome: p.nome,
       categoria: p.categoria ?? null,
-      prezzo: p.prezzo,
+      prezzo: p.prezzo ?? null,
       quantita_negozio: p.quantita_negozio,
       quantita_scorta: p.quantita_scorta,
       soglia_minima: p.soglia_minima,
@@ -45,9 +46,10 @@ const TABLE_HANDLERS: Record<
     }),
     fromRow: (p) => ({
       id: p.id,
+      codice: p.codice ?? undefined,
       nome: p.nome,
       categoria: p.categoria ?? undefined,
-      prezzo: p.prezzo,
+      prezzo: p.prezzo ?? undefined,
       quantita_negozio: p.quantita_negozio,
       quantita_scorta: p.quantita_scorta,
       soglia_minima: p.soglia_minima,

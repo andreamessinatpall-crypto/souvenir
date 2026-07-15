@@ -1,8 +1,9 @@
 export interface Product {
   id: string
+  codice?: string
   nome: string
   categoria?: string
-  prezzo: number
+  prezzo?: number
   quantita_negozio: number
   quantita_scorta: number
   soglia_minima: number

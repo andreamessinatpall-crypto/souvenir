@@ -45,7 +45,10 @@ export function ProductList() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium text-slate-800">{product.nome}</p>
-                  <p className="text-sm text-slate-500">{formatEUR(product.prezzo)}</p>
+                  <p className="truncate text-sm text-slate-500">
+                    {product.codice && <span className="text-slate-400">{product.codice} · </span>}
+                    {formatEUR(product.costo_acquisto ?? 0)}
+                  </p>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1">
                   <span

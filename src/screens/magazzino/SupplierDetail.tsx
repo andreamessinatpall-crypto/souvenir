@@ -174,7 +174,7 @@ export function SupplierDetail({ supplier, onClose }: SupplierDetailProps) {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium text-slate-800">{product.nome}</p>
-                  <p className="text-sm text-slate-500">{formatEUR(product.prezzo)}</p>
+                  <p className="text-sm text-slate-500">{formatEUR(product.costo_acquisto ?? 0)}</p>
                 </div>
                 <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-600">
                   {product.quantita_negozio + product.quantita_scorta}

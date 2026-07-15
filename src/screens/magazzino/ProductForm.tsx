@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import type { Product } from '../../lib/types'
 import type { ProductInput } from '../../lib/products'
@@ -7,7 +7,7 @@ import { Stepper } from '../../components/Stepper'
 import { formatEuroInput, parseEuroInput } from '../../lib/format'
 import { db } from '../../lib/db'
 import { createSupplier } from '../../lib/suppliers'
-import { transferToStore } from '../../lib/products'
+import { generateCodice, transferToStore } from '../../lib/products'
 import { SupplierForm } from './SupplierForm'
 
 const NUOVO_FORNITORE = '__nuovo__'
@@ -23,6 +23,7 @@ interface ProductFormProps {
 
 export function ProductForm({ product, defaultFornitoreId, onSave, onDelete, onClose }: ProductFormProps) {
   const suppliers = useLiveQuery(() => db.suppliers.orderBy('nome').toArray(), [])
+  const allProducts = useLiveQuery(() => db.products.toArray(), [])
   const categorie = useLiveQuery(async () => {
     const products = await db.products.toArray()
     const set = new Set<string>()
@@ -31,10 +32,10 @@ export function ProductForm({ product, defaultFornitoreId, onSave, onDelete, onC
     }
     return Array.from(set).sort((a, b) => a.localeCompare(b))
   }, [])
-  const [nome, setNome] = useState(product?.nome ?? '')
   const [categoria, setCategoria] = useState(product?.categoria ?? '')
   const [nuovaCategoria, setNuovaCategoria] = useState(false)
-  const [prezzo, setPrezzo] = useState(product ? formatEuroInput(product.prezzo) : '')
+  const [nome, setNome] = useState(product?.nome ?? '')
+  const [prezzo, setPrezzo] = useState(product?.prezzo !== undefined ? formatEuroInput(product.prezzo) : '')
   const [quantitaNegozio, setQuantitaNegozio] = useState(product?.quantita_negozio?.toString() ?? '0')
   const [quantitaScorta, setQuantitaScorta] = useState(product?.quantita_scorta?.toString() ?? '0')
   const [sogliaMinima, setSogliaMinima] = useState(product?.soglia_minima?.toString() ?? '3')
@@ -48,21 +49,36 @@ export function ProductForm({ product, defaultFornitoreId, onSave, onDelete, onC
   const [daSpostare, setDaSpostare] = useState(1)
   const [spostando, setSpostando] = useState(false)
 
+  const codice = useMemo(() => {
+    if (product?.codice) return product.codice
+    if (!allProducts || !nome.trim() || !categoria.trim()) return ''
+    return generateCodice(
+      categoria,
+      nome,
+      allProducts.map((p) => p.codice).filter((c): c is string => !!c),
+    )
+  }, [product, allProducts, nome, categoria])
+
   const valido =
-    nome.trim().length > 0 && parseEuroInput(prezzo) >= 0 && fornitoreId !== '' && categoria.trim() !== ''
+    nome.trim().length > 0 &&
+    categoria.trim() !== '' &&
+    fornitoreId !== '' &&
+    costoAcquisto.trim() !== '' &&
+    parseEuroInput(costoAcquisto) >= 0
 
   async function handleSave() {
     if (!valido || saving) return
     setSaving(true)
     try {
       await onSave({
+        codice: product?.codice || codice,
         nome: nome.trim(),
         categoria: categoria.trim(),
-        prezzo: parseEuroInput(prezzo),
+        prezzo: prezzo.trim() ? parseEuroInput(prezzo) : undefined,
         quantita_negozio: Number.parseInt(quantitaNegozio, 10) || 0,
         quantita_scorta: Number.parseInt(quantitaScorta, 10) || 0,
         soglia_minima: Number.parseInt(sogliaMinima, 10) || 3,
-        costo_acquisto: costoAcquisto.trim() ? parseEuroInput(costoAcquisto) : undefined,
+        costo_acquisto: parseEuroInput(costoAcquisto),
         foto,
         fornitore_id: fornitoreId,
       })
@@ -115,49 +131,7 @@ export function ProductForm({ product, defaultFornitoreId, onSave, onDelete, onC
         <div className="flex flex-col gap-5">
           <PhotoPicker value={foto} onChange={setFoto} />
 
-          <Field label="Nome prodotto">
-            <input
-              type="text"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              placeholder="Es. Calamita Cefalù"
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-lg"
-              autoFocus
-            />
-          </Field>
-
-          <Field label="Fornitore">
-            {suppliers?.length === 0 ? (
-              <button
-                type="button"
-                onClick={() => setCreatingSupplier(true)}
-                className="w-full rounded-xl border-2 border-dashed border-slate-300 py-3 text-center font-medium text-slate-500"
-              >
-                + Aggiungi il primo fornitore
-              </button>
-            ) : (
-              <select
-                value={fornitoreId}
-                onChange={(e) => {
-                  if (e.target.value === NUOVO_FORNITORE) setCreatingSupplier(true)
-                  else setFornitoreId(e.target.value)
-                }}
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-lg"
-              >
-                <option value="" disabled>
-                  Seleziona un fornitore
-                </option>
-                {suppliers?.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.nome}
-                  </option>
-                ))}
-                <option value={NUOVO_FORNITORE}>+ Nuovo fornitore</option>
-              </select>
-            )}
-          </Field>
-
-          <Field label="Etichetta">
+          <Field label="Tipologia">
             {nuovaCategoria || categorie?.length === 0 ? (
               <div className="flex flex-col gap-2">
                 <input
@@ -191,25 +165,74 @@ export function ProductForm({ product, defaultFornitoreId, onSave, onDelete, onC
                 className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-lg"
               >
                 <option value="" disabled>
-                  Seleziona un&apos;etichetta
+                  Seleziona una tipologia
                 </option>
                 {categorie?.map((c) => (
                   <option key={c} value={c}>
                     {c}
                   </option>
                 ))}
-                <option value={NUOVA_CATEGORIA}>+ Nuova etichetta</option>
+                <option value={NUOVA_CATEGORIA}>+ Nuova tipologia</option>
               </select>
             )}
           </Field>
 
-          <Field label="Prezzo di vendita">
+          <Field label="Nome prodotto">
+            <input
+              type="text"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              placeholder="Es. Calamita Cefalù"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-lg"
+            />
+          </Field>
+
+          {codice && (
+            <Field label="Codice prodotto">
+              <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-lg tracking-wide text-slate-600">
+                {codice}
+              </p>
+            </Field>
+          )}
+
+          <Field label="Fornitore">
+            {suppliers?.length === 0 ? (
+              <button
+                type="button"
+                onClick={() => setCreatingSupplier(true)}
+                className="w-full rounded-xl border-2 border-dashed border-slate-300 py-3 text-center font-medium text-slate-500"
+              >
+                + Aggiungi il primo fornitore
+              </button>
+            ) : (
+              <select
+                value={fornitoreId}
+                onChange={(e) => {
+                  if (e.target.value === NUOVO_FORNITORE) setCreatingSupplier(true)
+                  else setFornitoreId(e.target.value)
+                }}
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-lg"
+              >
+                <option value="" disabled>
+                  Seleziona un fornitore
+                </option>
+                {suppliers?.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.nome}
+                  </option>
+                ))}
+                <option value={NUOVO_FORNITORE}>+ Nuovo fornitore</option>
+              </select>
+            )}
+          </Field>
+
+          <Field label="Prezzo di acquisto">
             <div className="relative">
               <input
                 type="text"
                 inputMode="decimal"
-                value={prezzo}
-                onChange={(e) => setPrezzo(e.target.value)}
+                value={costoAcquisto}
+                onChange={(e) => setCostoAcquisto(e.target.value)}
                 placeholder="0,00"
                 className="w-full rounded-xl border border-slate-300 px-4 py-3 text-lg"
               />
@@ -252,13 +275,13 @@ export function ProductForm({ product, defaultFornitoreId, onSave, onDelete, onC
             <Stepper value={Number.parseInt(sogliaMinima, 10) || 0} onChange={(v) => setSogliaMinima(String(v))} />
           </Field>
 
-          <Field label="Costo di acquisto (opzionale)">
+          <Field label="Prezzo di vendita (opzionale)">
             <div className="relative">
               <input
                 type="text"
                 inputMode="decimal"
-                value={costoAcquisto}
-                onChange={(e) => setCostoAcquisto(e.target.value)}
+                value={prezzo}
+                onChange={(e) => setPrezzo(e.target.value)}
                 placeholder="0,00"
                 className="w-full rounded-xl border border-slate-300 px-4 py-3 text-lg"
               />
