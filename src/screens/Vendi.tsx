@@ -58,7 +58,7 @@ export function Vendi() {
               key={product.id}
               type="button"
               onClick={() => addToCart(product.id)}
-              disabled={product.quantita <= 0}
+              disabled={product.quantita_negozio <= 0}
               className="relative flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-left active:bg-slate-50 disabled:opacity-40"
             >
               <div className="flex aspect-square items-center justify-center bg-slate-100 text-4xl text-slate-300">
@@ -77,7 +77,7 @@ export function Vendi() {
                   {cart[product.id]}
                 </span>
               )}
-              {product.quantita <= 0 && (
+              {product.quantita_negozio <= 0 && (
                 <span className="absolute inset-0 flex items-center justify-center bg-white/70 text-sm font-semibold text-slate-500">
                   Esaurito
                 </span>

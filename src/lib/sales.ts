@@ -31,7 +31,7 @@ export async function createSale(lines: CartLine[], metodo_pagamento: MetodoPaga
       const current = await db.products.get(line.product.id)
       if (current) {
         await db.products.update(line.product.id, {
-          quantita: Math.max(0, current.quantita - line.quantita),
+          quantita_negozio: Math.max(0, current.quantita_negozio - line.quantita),
           updated_at: now,
         })
       }

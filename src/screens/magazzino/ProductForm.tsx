@@ -4,9 +4,10 @@ import type { Product } from '../../lib/types'
 import type { ProductInput } from '../../lib/products'
 import { PhotoPicker } from '../../components/PhotoPicker'
 import { Stepper } from '../../components/Stepper'
-import { parseEuroInput } from '../../lib/format'
+import { formatEuroInput, parseEuroInput } from '../../lib/format'
 import { db } from '../../lib/db'
 import { createSupplier } from '../../lib/suppliers'
+import { transferToStore } from '../../lib/products'
 import { SupplierForm } from './SupplierForm'
 
 const NUOVO_FORNITORE = '__nuovo__'
@@ -23,14 +24,19 @@ export function ProductForm({ product, defaultFornitoreId, onSave, onDelete, onC
   const suppliers = useLiveQuery(() => db.suppliers.orderBy('nome').toArray(), [])
   const [nome, setNome] = useState(product?.nome ?? '')
   const [categoria, setCategoria] = useState(product?.categoria ?? '')
-  const [prezzo, setPrezzo] = useState(product?.prezzo?.toString() ?? '')
-  const [quantita, setQuantita] = useState(product?.quantita?.toString() ?? '0')
+  const [prezzo, setPrezzo] = useState(product ? formatEuroInput(product.prezzo) : '')
+  const [quantitaNegozio, setQuantitaNegozio] = useState(product?.quantita_negozio?.toString() ?? '0')
+  const [quantitaScorta, setQuantitaScorta] = useState(product?.quantita_scorta?.toString() ?? '0')
   const [sogliaMinima, setSogliaMinima] = useState(product?.soglia_minima?.toString() ?? '3')
-  const [costoAcquisto, setCostoAcquisto] = useState(product?.costo_acquisto?.toString() ?? '')
+  const [costoAcquisto, setCostoAcquisto] = useState(
+    product?.costo_acquisto !== undefined ? formatEuroInput(product.costo_acquisto) : '',
+  )
   const [fornitoreId, setFornitoreId] = useState(product?.fornitore_id ?? defaultFornitoreId ?? '')
   const [foto, setFoto] = useState<string | undefined>(product?.foto)
   const [saving, setSaving] = useState(false)
   const [creatingSupplier, setCreatingSupplier] = useState(false)
+  const [daSpostare, setDaSpostare] = useState(1)
+  const [spostando, setSpostando] = useState(false)
 
   const valido = nome.trim().length > 0 && parseEuroInput(prezzo) >= 0 && fornitoreId !== ''
 
@@ -42,7 +48,8 @@ export function ProductForm({ product, defaultFornitoreId, onSave, onDelete, onC
         nome: nome.trim(),
         categoria: categoria.trim() || undefined,
         prezzo: parseEuroInput(prezzo),
-        quantita: Number.parseInt(quantita, 10) || 0,
+        quantita_negozio: Number.parseInt(quantitaNegozio, 10) || 0,
+        quantita_scorta: Number.parseInt(quantitaScorta, 10) || 0,
         soglia_minima: Number.parseInt(sogliaMinima, 10) || 3,
         costo_acquisto: costoAcquisto.trim() ? parseEuroInput(costoAcquisto) : undefined,
         foto,
@@ -53,6 +60,24 @@ export function ProductForm({ product, defaultFornitoreId, onSave, onDelete, onC
       console.error('salvataggio prodotto fallito', err)
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleTransfer() {
+    if (!product || spostando) return
+    const scortaAttuale = Number.parseInt(quantitaScorta, 10) || 0
+    const n = Math.min(daSpostare, scortaAttuale)
+    if (n <= 0) return
+    setSpostando(true)
+    try {
+      await transferToStore(product.id, n)
+      setQuantitaNegozio(String((Number.parseInt(quantitaNegozio, 10) || 0) + n))
+      setQuantitaScorta(String(scortaAttuale - n))
+      setDaSpostare(1)
+    } catch (err) {
+      console.error('travaso fallito', err)
+    } finally {
+      setSpostando(false)
     }
   }
 
@@ -145,9 +170,36 @@ export function ProductForm({ product, defaultFornitoreId, onSave, onDelete, onC
             </div>
           </Field>
 
-          <Field label="Giacenza">
-            <Stepper value={Number.parseInt(quantita, 10) || 0} onChange={(v) => setQuantita(String(v))} />
+          <Field label="In negozio">
+            <Stepper
+              value={Number.parseInt(quantitaNegozio, 10) || 0}
+              onChange={(v) => setQuantitaNegozio(String(v))}
+            />
           </Field>
+
+          <Field label="Scorta (scatoli)">
+            <Stepper
+              value={Number.parseInt(quantitaScorta, 10) || 0}
+              onChange={(v) => setQuantitaScorta(String(v))}
+            />
+          </Field>
+
+          {product && (Number.parseInt(quantitaScorta, 10) || 0) > 0 && (
+            <div className="rounded-xl border border-slate-200 p-3">
+              <p className="mb-2 text-sm font-medium text-slate-500">Sposta dalla scorta al negozio</p>
+              <div className="flex items-center gap-3">
+                <Stepper value={daSpostare} onChange={setDaSpostare} min={1} />
+                <button
+                  type="button"
+                  onClick={handleTransfer}
+                  disabled={spostando}
+                  className="flex-1 rounded-xl bg-[#0b4468] py-3 font-semibold text-white disabled:opacity-40"
+                >
+                  {spostando ? 'Sposto...' : 'Sposta →'}
+                </button>
+              </div>
+            </div>
+          )}
 
           <Field label="Soglia scorta bassa">
             <Stepper value={Number.parseInt(sogliaMinima, 10) || 0} onChange={(v) => setSogliaMinima(String(v))} />

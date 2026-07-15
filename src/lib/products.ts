@@ -21,12 +21,17 @@ export async function deleteProduct(id: string): Promise<void> {
   await enqueueSync('products', id, 'delete')
 }
 
-export async function adjustProductQuantity(id: string, delta: number): Promise<void> {
+export async function transferToStore(id: string, quantita: number): Promise<void> {
+  if (quantita <= 0) return
   await db.transaction('rw', db.products, async () => {
     const product = await db.products.get(id)
     if (!product) return
-    const quantita = Math.max(0, product.quantita + delta)
-    await db.products.update(id, { quantita, updated_at: Date.now() })
+    const daSpostare = Math.min(quantita, product.quantita_scorta)
+    await db.products.update(id, {
+      quantita_negozio: product.quantita_negozio + daSpostare,
+      quantita_scorta: product.quantita_scorta - daSpostare,
+      updated_at: Date.now(),
+    })
   })
   await enqueueSync('products', id, 'update')
 }

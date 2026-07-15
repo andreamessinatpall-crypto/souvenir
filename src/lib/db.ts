@@ -21,6 +21,21 @@ db.version(1).stores({
   sync_queue: 'id, tabella, stato, timestamp',
 })
 
+db.version(2)
+  .stores({
+    products: 'id, nome, categoria, fornitore_id, quantita_negozio',
+  })
+  .upgrade(async (tx) => {
+    await tx
+      .table('products')
+      .toCollection()
+      .modify((product: any) => {
+        product.quantita_negozio = product.quantita ?? 0
+        product.quantita_scorta = 0
+        delete product.quantita
+      })
+  })
+
 export { db }
 
 export function uuid(): string {

@@ -62,7 +62,7 @@ export async function markOrderReceived(orderId: string, receivedLines: Received
       const product = await db.products.get(line.product_id)
       if (product) {
         await db.products.update(line.product_id, {
-          quantita: product.quantita + line.quantita,
+          quantita_scorta: product.quantita_scorta + line.quantita,
           updated_at: now,
         })
       }

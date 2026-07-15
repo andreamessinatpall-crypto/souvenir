@@ -13,6 +13,10 @@ export function parseEuroInput(value: string): number {
   return Number.isFinite(parsed) ? parsed : 0
 }
 
+export function formatEuroInput(value: number): string {
+  return value.toString().replace('.', ',')
+}
+
 const dateFormatter = new Intl.DateTimeFormat('it-IT', {
   day: 'numeric',
   month: 'short',

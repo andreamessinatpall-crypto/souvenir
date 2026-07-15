@@ -47,15 +47,18 @@ export function ProductList() {
                   <p className="truncate font-medium text-slate-800">{product.nome}</p>
                   <p className="text-sm text-slate-500">{formatEUR(product.prezzo)}</p>
                 </div>
-                <div className="shrink-0 text-right">
+                <div className="flex shrink-0 flex-col items-end gap-1">
                   <span
                     className={`rounded-full px-3 py-1 text-sm font-semibold ${
-                      product.quantita <= product.soglia_minima
+                      product.quantita_negozio + product.quantita_scorta <= product.soglia_minima
                         ? 'bg-orange-100 text-orange-700'
                         : 'bg-slate-100 text-slate-600'
                     }`}
                   >
-                    {product.quantita}
+                    {product.quantita_negozio + product.quantita_scorta}
+                  </span>
+                  <span className="text-xs text-slate-400">
+                    🏪 {product.quantita_negozio} · 📦 {product.quantita_scorta}
                   </span>
                 </div>
               </button>

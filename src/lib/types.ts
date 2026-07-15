@@ -3,7 +3,8 @@ export interface Product {
   nome: string
   categoria?: string
   prezzo: number
-  quantita: number
+  quantita_negozio: number
+  quantita_scorta: number
   soglia_minima: number
   foto?: string
   fornitore_id?: string

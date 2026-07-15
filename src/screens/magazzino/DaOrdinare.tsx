@@ -21,7 +21,7 @@ export function DaOrdinare({ onClose }: DaOrdinareProps) {
       db.suppliers.toArray(),
       db.orders.where('stato').equals('in_attesa').toArray(),
     ])
-    const bassi = products.filter((p) => p.quantita <= p.soglia_minima)
+    const bassi = products.filter((p) => p.quantita_negozio + p.quantita_scorta <= p.soglia_minima)
     const supplierMap = new Map(suppliers.map((s) => [s.id, s]))
     const alreadyOrdering = new Set(orders.map((o) => o.fornitore_id))
 
@@ -31,7 +31,8 @@ export function DaOrdinare({ onClose }: DaOrdinareProps) {
       if (!groups.has(key)) {
         groups.set(key, { fornitore: product.fornitore_id ? supplierMap.get(product.fornitore_id) ?? null : null, prodotti: [] })
       }
-      const suggerita = Math.max(product.soglia_minima * 2 - product.quantita, product.soglia_minima)
+      const totale = product.quantita_negozio + product.quantita_scorta
+      const suggerita = Math.max(product.soglia_minima * 2 - totale, product.soglia_minima)
       groups.get(key)!.prodotti.push({ product, quantita: suggerita })
     }
     return { groups: Array.from(groups.values()), alreadyOrdering }
@@ -85,7 +86,11 @@ export function DaOrdinare({ onClose }: DaOrdinareProps) {
                 <ul className="mb-3 flex flex-col gap-1 text-sm text-slate-500">
                   {gruppo.prodotti.map(({ product, quantita }) => (
                     <li key={product.id}>
-                      {product.nome} — <span className="font-medium text-orange-600">{product.quantita} in stock</span>, ordina {quantita}
+                      {product.nome} —{' '}
+                      <span className="font-medium text-orange-600">
+                        {product.quantita_negozio + product.quantita_scorta} in stock
+                      </span>
+                      , ordina {quantita}
                     </li>
                   ))}
                 </ul>

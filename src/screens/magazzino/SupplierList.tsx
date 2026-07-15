@@ -11,7 +11,7 @@ import { EmptyState } from '../../components/EmptyState'
 export function SupplierList() {
   const suppliers = useLiveQuery(() => db.suppliers.orderBy('nome').toArray(), [])
   const products = useLiveQuery(() => db.products.toArray(), [])
-  const daOrdinareCount = products?.filter((p) => p.quantita <= p.soglia_minima).length ?? 0
+  const daOrdinareCount = products?.filter((p) => p.quantita_negozio + p.quantita_scorta <= p.soglia_minima).length ?? 0
 
   const [editing, setEditing] = useState<Supplier | 'new' | null>(null)
   const [viewing, setViewing] = useState<Supplier | null>(null)
