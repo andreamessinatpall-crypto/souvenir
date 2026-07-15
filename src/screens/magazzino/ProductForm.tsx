@@ -6,6 +6,10 @@ import { PhotoPicker } from '../../components/PhotoPicker'
 import { Stepper } from '../../components/Stepper'
 import { parseEuroInput } from '../../lib/format'
 import { db } from '../../lib/db'
+import { createSupplier } from '../../lib/suppliers'
+import { SupplierForm } from './SupplierForm'
+
+const NUOVO_FORNITORE = '__nuovo__'
 
 interface ProductFormProps {
   product?: Product
@@ -26,6 +30,7 @@ export function ProductForm({ product, defaultFornitoreId, onSave, onDelete, onC
   const [fornitoreId, setFornitoreId] = useState(product?.fornitore_id ?? defaultFornitoreId ?? '')
   const [foto, setFoto] = useState<string | undefined>(product?.foto)
   const [saving, setSaving] = useState(false)
+  const [creatingSupplier, setCreatingSupplier] = useState(false)
 
   const valido = nome.trim().length > 0 && parseEuroInput(prezzo) >= 0 && fornitoreId !== ''
 
@@ -87,13 +92,20 @@ export function ProductForm({ product, defaultFornitoreId, onSave, onDelete, onC
 
           <Field label="Fornitore">
             {suppliers?.length === 0 ? (
-              <p className="rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-700">
-                Nessun fornitore ancora. Aggiungine uno dalla sezione Fornitori prima di creare un prodotto.
-              </p>
+              <button
+                type="button"
+                onClick={() => setCreatingSupplier(true)}
+                className="w-full rounded-xl border-2 border-dashed border-slate-300 py-3 text-center font-medium text-slate-500"
+              >
+                + Aggiungi il primo fornitore
+              </button>
             ) : (
               <select
                 value={fornitoreId}
-                onChange={(e) => setFornitoreId(e.target.value)}
+                onChange={(e) => {
+                  if (e.target.value === NUOVO_FORNITORE) setCreatingSupplier(true)
+                  else setFornitoreId(e.target.value)
+                }}
                 className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-lg"
               >
                 <option value="" disabled>
@@ -104,6 +116,7 @@ export function ProductForm({ product, defaultFornitoreId, onSave, onDelete, onC
                     {s.nome}
                   </option>
                 ))}
+                <option value={NUOVO_FORNITORE}>+ Nuovo fornitore</option>
               </select>
             )}
           </Field>
@@ -172,6 +185,16 @@ export function ProductForm({ product, defaultFornitoreId, onSave, onDelete, onC
           {saving ? 'Salvataggio...' : 'Salva'}
         </button>
       </div>
+
+      {creatingSupplier && (
+        <SupplierForm
+          onClose={() => setCreatingSupplier(false)}
+          onSave={async (input) => {
+            const id = await createSupplier(input)
+            setFornitoreId(id)
+          }}
+        />
+      )}
     </div>
   )
 }

@@ -5,7 +5,7 @@ import { deleteSupplier, updateSupplier, whatsappUrl } from '../../lib/suppliers
 import { createProduct, deleteProduct, updateProduct } from '../../lib/products'
 import { createOrder } from '../../lib/orders'
 import { formatDate, formatEUR } from '../../lib/format'
-import type { Order, Product, Supplier } from '../../lib/types'
+import type { Order, OrderItem, Product, Supplier } from '../../lib/types'
 import { ProductForm } from './ProductForm'
 import { SupplierForm } from './SupplierForm'
 import { ReceiveOrderSheet } from './ReceiveOrderSheet'
@@ -26,10 +26,18 @@ export function SupplierDetail({ supplier, onClose }: SupplierDetailProps) {
   )
   const lastOrder = orders?.[0]
   const olderOrders = orders?.slice(1) ?? []
-  const lastOrderItems = useLiveQuery(
-    () => (lastOrder ? db.order_items.where('order_id').equals(lastOrder.id).toArray() : []),
-    [lastOrder?.id],
-  )
+  const orderItemsByOrder = useLiveQuery(async () => {
+    if (!orders || orders.length === 0) return new Map<string, OrderItem[]>()
+    const items = await db.order_items.where('order_id').anyOf(orders.map((o) => o.id)).toArray()
+    const map = new Map<string, OrderItem[]>()
+    for (const item of items) {
+      const list = map.get(item.order_id) ?? []
+      list.push(item)
+      map.set(item.order_id, list)
+    }
+    return map
+  }, [orders])
+  const lastOrderItems = lastOrder ? orderItemsByOrder?.get(lastOrder.id) ?? [] : []
 
   const [editingProduct, setEditingProduct] = useState<Product | 'new' | null>(null)
   const [editingSupplier, setEditingSupplier] = useState(false)
@@ -37,7 +45,7 @@ export function SupplierDetail({ supplier, onClose }: SupplierDetailProps) {
   const [reordering, setReordering] = useState(false)
 
   async function handleReorder() {
-    if (!lastOrderItems || !products || reordering) return
+    if (lastOrderItems.length === 0 || !products || reordering) return
     setReordering(true)
     try {
       const lines = lastOrderItems
@@ -135,9 +143,9 @@ export function SupplierDetail({ supplier, onClose }: SupplierDetailProps) {
         {olderOrders.length > 0 && (
           <div className="mb-6">
             <h2 className="mb-2 text-sm font-semibold text-slate-500">Storico ordini</h2>
-            <ul className="flex flex-col gap-1">
+            <ul className="flex flex-col gap-2">
               {olderOrders.map((order) => (
-                <OrderHistoryRow key={order.id} order={order} />
+                <OrderHistoryRow key={order.id} order={order} items={orderItemsByOrder?.get(order.id) ?? []} />
               ))}
             </ul>
           </div>
@@ -213,22 +221,31 @@ export function SupplierDetail({ supplier, onClose }: SupplierDetailProps) {
   )
 }
 
-function OrderHistoryRow({ order }: { order: Order }) {
+function OrderHistoryRow({ order, items }: { order: Order; items: OrderItem[] }) {
   return (
-    <li className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2 text-sm">
-      <span className="text-slate-600">
-        {formatDate(order.data)}
-        {order.stato === 'ricevuto' && (
-          <span className="text-slate-400"> → arrivato il {formatDate(order.updated_at)}</span>
-        )}
-      </span>
-      <span
-        className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${
-          order.stato === 'ricevuto' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
-        }`}
-      >
-        {order.stato === 'ricevuto' ? 'Ricevuto' : 'In attesa'}
-      </span>
+    <li className="rounded-xl border border-slate-200 px-3 py-2">
+      <div className="mb-1 flex items-center justify-between">
+        <span className="text-sm text-slate-600">
+          {formatDate(order.data)}
+          {order.stato === 'ricevuto' && (
+            <span className="text-slate-400"> → arrivato il {formatDate(order.updated_at)}</span>
+          )}
+        </span>
+        <span
+          className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${
+            order.stato === 'ricevuto' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+          }`}
+        >
+          {order.stato === 'ricevuto' ? 'Ricevuto' : 'In attesa'}
+        </span>
+      </div>
+      <ul className="flex flex-col text-sm text-slate-500">
+        {items.map((item) => (
+          <li key={item.id}>
+            {item.nome_prodotto} × {item.quantita}
+          </li>
+        ))}
+      </ul>
     </li>
   )
 }
