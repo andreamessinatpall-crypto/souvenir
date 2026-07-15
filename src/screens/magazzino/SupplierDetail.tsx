@@ -4,8 +4,8 @@ import { db } from '../../lib/db'
 import { deleteSupplier, updateSupplier, whatsappUrl } from '../../lib/suppliers'
 import { createProduct, deleteProduct, updateProduct } from '../../lib/products'
 import { createOrder } from '../../lib/orders'
-import { formatEUR } from '../../lib/format'
-import type { Product, Supplier } from '../../lib/types'
+import { formatDate, formatEUR } from '../../lib/format'
+import type { Order, Product, Supplier } from '../../lib/types'
 import { ProductForm } from './ProductForm'
 import { SupplierForm } from './SupplierForm'
 import { ReceiveOrderSheet } from './ReceiveOrderSheet'
@@ -20,10 +20,12 @@ export function SupplierDetail({ supplier, onClose }: SupplierDetailProps) {
     () => db.products.where('fornitore_id').equals(supplier.id).sortBy('nome'),
     [supplier.id],
   )
-  const lastOrder = useLiveQuery(
-    () => db.orders.where('fornitore_id').equals(supplier.id).reverse().sortBy('data').then((o) => o[0]),
+  const orders = useLiveQuery(
+    () => db.orders.where('fornitore_id').equals(supplier.id).reverse().sortBy('data'),
     [supplier.id],
   )
+  const lastOrder = orders?.[0]
+  const olderOrders = orders?.slice(1) ?? []
   const lastOrderItems = useLiveQuery(
     () => (lastOrder ? db.order_items.where('order_id').equals(lastOrder.id).toArray() : []),
     [lastOrder?.id],
@@ -98,6 +100,10 @@ export function SupplierDetail({ supplier, onClose }: SupplierDetailProps) {
                 {lastOrder.stato === 'ricevuto' ? 'Ricevuto' : 'In attesa'}
               </span>
             </div>
+            <p className="mb-2 text-sm text-slate-500">
+              Ordinato il {formatDate(lastOrder.data)}
+              {lastOrder.stato === 'ricevuto' && ` — arrivato il ${formatDate(lastOrder.updated_at)}`}
+            </p>
             <ul className="mb-3 flex flex-col gap-1 text-sm text-slate-500">
               {lastOrderItems?.map((item) => (
                 <li key={item.id}>
@@ -123,6 +129,17 @@ export function SupplierDetail({ supplier, onClose }: SupplierDetailProps) {
                 {reordering ? 'Invio...' : 'Ordina di nuovo'}
               </button>
             )}
+          </div>
+        )}
+
+        {olderOrders.length > 0 && (
+          <div className="mb-6">
+            <h2 className="mb-2 text-sm font-semibold text-slate-500">Storico ordini</h2>
+            <ul className="flex flex-col gap-1">
+              {olderOrders.map((order) => (
+                <OrderHistoryRow key={order.id} order={order} />
+              ))}
+            </ul>
           </div>
         )}
 
@@ -193,5 +210,25 @@ export function SupplierDetail({ supplier, onClose }: SupplierDetailProps) {
         <ReceiveOrderSheet order={lastOrder} onClose={() => setReceivingOrder(false)} />
       )}
     </div>
+  )
+}
+
+function OrderHistoryRow({ order }: { order: Order }) {
+  return (
+    <li className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2 text-sm">
+      <span className="text-slate-600">
+        {formatDate(order.data)}
+        {order.stato === 'ricevuto' && (
+          <span className="text-slate-400"> → arrivato il {formatDate(order.updated_at)}</span>
+        )}
+      </span>
+      <span
+        className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${
+          order.stato === 'ricevuto' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+        }`}
+      >
+        {order.stato === 'ricevuto' ? 'Ricevuto' : 'In attesa'}
+      </span>
+    </li>
   )
 }

@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import type { Product } from '../../lib/types'
 import type { ProductInput } from '../../lib/products'
 import { PhotoPicker } from '../../components/PhotoPicker'
 import { Stepper } from '../../components/Stepper'
 import { parseEuroInput } from '../../lib/format'
+import { db } from '../../lib/db'
 
 interface ProductFormProps {
   product?: Product
@@ -14,16 +16,18 @@ interface ProductFormProps {
 }
 
 export function ProductForm({ product, defaultFornitoreId, onSave, onDelete, onClose }: ProductFormProps) {
+  const suppliers = useLiveQuery(() => db.suppliers.orderBy('nome').toArray(), [])
   const [nome, setNome] = useState(product?.nome ?? '')
   const [categoria, setCategoria] = useState(product?.categoria ?? '')
   const [prezzo, setPrezzo] = useState(product?.prezzo?.toString() ?? '')
   const [quantita, setQuantita] = useState(product?.quantita?.toString() ?? '0')
   const [sogliaMinima, setSogliaMinima] = useState(product?.soglia_minima?.toString() ?? '3')
   const [costoAcquisto, setCostoAcquisto] = useState(product?.costo_acquisto?.toString() ?? '')
+  const [fornitoreId, setFornitoreId] = useState(product?.fornitore_id ?? defaultFornitoreId ?? '')
   const [foto, setFoto] = useState<string | undefined>(product?.foto)
   const [saving, setSaving] = useState(false)
 
-  const valido = nome.trim().length > 0 && parseEuroInput(prezzo) >= 0
+  const valido = nome.trim().length > 0 && parseEuroInput(prezzo) >= 0 && fornitoreId !== ''
 
   async function handleSave() {
     if (!valido || saving) return
@@ -37,7 +41,7 @@ export function ProductForm({ product, defaultFornitoreId, onSave, onDelete, onC
         soglia_minima: Number.parseInt(sogliaMinima, 10) || 3,
         costo_acquisto: costoAcquisto.trim() ? parseEuroInput(costoAcquisto) : undefined,
         foto,
-        fornitore_id: product?.fornitore_id ?? defaultFornitoreId,
+        fornitore_id: fornitoreId,
       })
       onClose()
     } catch (err) {
@@ -79,6 +83,29 @@ export function ProductForm({ product, defaultFornitoreId, onSave, onDelete, onC
               className="w-full rounded-xl border border-slate-300 px-4 py-3 text-lg"
               autoFocus
             />
+          </Field>
+
+          <Field label="Fornitore">
+            {suppliers?.length === 0 ? (
+              <p className="rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-700">
+                Nessun fornitore ancora. Aggiungine uno dalla sezione Fornitori prima di creare un prodotto.
+              </p>
+            ) : (
+              <select
+                value={fornitoreId}
+                onChange={(e) => setFornitoreId(e.target.value)}
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-lg"
+              >
+                <option value="" disabled>
+                  Seleziona un fornitore
+                </option>
+                {suppliers?.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.nome}
+                  </option>
+                ))}
+              </select>
+            )}
           </Field>
 
           <Field label="Categoria (opzionale)">
