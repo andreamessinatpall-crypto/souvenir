@@ -6,7 +6,7 @@ import { Report } from './screens/Report'
 import { Login } from './screens/Login'
 import { TopBar } from './components/TopBar'
 import { supabase } from './lib/supabaseClient'
-import { startSyncEngine } from './lib/sync'
+import { pullIfLocalEmpty, startSyncEngine } from './lib/sync'
 
 type Tab = 'registra' | 'magazzino' | 'report'
 
@@ -19,6 +19,7 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
 export default function App() {
   const [tab, setTab] = useState<Tab>('registra')
   const [session, setSession] = useState<Session | null | undefined>(undefined)
+  const [pulling, setPulling] = useState(true)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
@@ -28,11 +29,29 @@ export default function App() {
 
   useEffect(() => {
     if (!session) return
-    return startSyncEngine()
+    let cancelled = false
+    let stopSyncEngine: (() => void) | undefined
+    pullIfLocalEmpty().finally(() => {
+      if (cancelled) return
+      setPulling(false)
+      stopSyncEngine = startSyncEngine()
+    })
+    return () => {
+      cancelled = true
+      stopSyncEngine?.()
+    }
   }, [session])
 
   if (session === undefined) return null
   if (session === null) return <Login />
+  if (pulling) {
+    return (
+      <div className="flex h-dvh flex-col items-center justify-center gap-3 bg-slate-50 px-6 text-center">
+        <span className="text-4xl">📦</span>
+        <p className="text-slate-500">Carico i tuoi dati...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="flex h-dvh flex-col bg-slate-50">

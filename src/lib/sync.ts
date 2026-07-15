@@ -15,9 +15,17 @@ function toIso(ms: number): string {
   return new Date(ms).toISOString()
 }
 
+function toMs(iso: string): number {
+  return new Date(iso).getTime()
+}
+
 const TABLE_HANDLERS: Record<
   SyncTabella,
-  { dexieTable: 'products' | 'sales' | 'sale_items' | 'suppliers' | 'orders' | 'order_items'; toRow: (r: any) => any }
+  {
+    dexieTable: 'products' | 'sales' | 'sale_items' | 'suppliers' | 'orders' | 'order_items'
+    toRow: (r: any) => any
+    fromRow: (r: any) => any
+  }
 > = {
   products: {
     dexieTable: 'products',
@@ -35,6 +43,20 @@ const TABLE_HANDLERS: Record<
       created_at: toIso(p.created_at),
       updated_at: toIso(p.updated_at),
     }),
+    fromRow: (p) => ({
+      id: p.id,
+      nome: p.nome,
+      categoria: p.categoria ?? undefined,
+      prezzo: p.prezzo,
+      quantita_negozio: p.quantita_negozio,
+      quantita_scorta: p.quantita_scorta,
+      soglia_minima: p.soglia_minima,
+      foto: p.foto ?? undefined,
+      fornitore_id: p.fornitore_id ?? undefined,
+      costo_acquisto: p.costo_acquisto ?? undefined,
+      created_at: toMs(p.created_at),
+      updated_at: toMs(p.updated_at),
+    }),
   },
   sales: {
     dexieTable: 'sales',
@@ -45,6 +67,13 @@ const TABLE_HANDLERS: Record<
       metodo_pagamento: s.metodo_pagamento,
       created_at: toIso(s.created_at),
     }),
+    fromRow: (s) => ({
+      id: s.id,
+      data: toMs(s.data),
+      totale: s.totale,
+      metodo_pagamento: s.metodo_pagamento,
+      created_at: toMs(s.created_at),
+    }),
   },
   sale_items: {
     dexieTable: 'sale_items',
@@ -52,6 +81,14 @@ const TABLE_HANDLERS: Record<
       id: i.id,
       sale_id: i.sale_id,
       product_id: i.product_id,
+      nome_prodotto: i.nome_prodotto,
+      quantita: i.quantita,
+      prezzo_unitario: i.prezzo_unitario,
+    }),
+    fromRow: (i) => ({
+      id: i.id,
+      sale_id: i.sale_id,
+      product_id: i.product_id ?? undefined,
       nome_prodotto: i.nome_prodotto,
       quantita: i.quantita,
       prezzo_unitario: i.prezzo_unitario,
@@ -67,6 +104,14 @@ const TABLE_HANDLERS: Record<
       created_at: toIso(s.created_at),
       updated_at: toIso(s.updated_at),
     }),
+    fromRow: (s) => ({
+      id: s.id,
+      nome: s.nome,
+      telefono: s.telefono ?? undefined,
+      note: s.note ?? undefined,
+      created_at: toMs(s.created_at),
+      updated_at: toMs(s.updated_at),
+    }),
   },
   orders: {
     dexieTable: 'orders',
@@ -79,6 +124,15 @@ const TABLE_HANDLERS: Record<
       created_at: toIso(o.created_at),
       updated_at: toIso(o.updated_at),
     }),
+    fromRow: (o) => ({
+      id: o.id,
+      fornitore_id: o.fornitore_id,
+      data: toMs(o.data),
+      stato: o.stato,
+      totale_costo: o.totale_costo,
+      created_at: toMs(o.created_at),
+      updated_at: toMs(o.updated_at),
+    }),
   },
   order_items: {
     dexieTable: 'order_items',
@@ -90,7 +144,40 @@ const TABLE_HANDLERS: Record<
       quantita: i.quantita,
       costo_unitario: i.costo_unitario,
     }),
+    fromRow: (i) => ({
+      id: i.id,
+      order_id: i.order_id,
+      product_id: i.product_id ?? undefined,
+      nome_prodotto: i.nome_prodotto,
+      quantita: i.quantita,
+      costo_unitario: i.costo_unitario,
+    }),
   },
+}
+
+const PULL_ORDER: SyncTabella[] = ['suppliers', 'products', 'sales', 'sale_items', 'orders', 'order_items']
+
+export async function pullAllFromRemote(): Promise<void> {
+  for (const tabella of PULL_ORDER) {
+    const handler = TABLE_HANDLERS[tabella]
+    const { data, error } = await withTimeout(supabase.from(tabella).select('*'))
+    if (error) {
+      console.error('pull error', tabella, error)
+      continue
+    }
+    if (!data || data.length === 0) continue
+    await (db[handler.dexieTable] as any).bulkPut(data.map(handler.fromRow))
+  }
+}
+
+export async function pullIfLocalEmpty(): Promise<void> {
+  const localCount = await db.products.count()
+  if (localCount > 0) return
+  try {
+    await pullAllFromRemote()
+  } catch (err) {
+    console.error('pull iniziale fallito', err)
+  }
 }
 
 async function processItem(item: SyncQueueItem): Promise<boolean> {
