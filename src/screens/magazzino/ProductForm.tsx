@@ -23,10 +23,14 @@ interface ProductFormProps {
 
 export function ProductForm({ product, defaultFornitoreId, onSave, onDelete, onClose }: ProductFormProps) {
   const suppliers = useLiveQuery(() => db.suppliers.orderBy('nome').toArray(), [])
-  const categorie = useLiveQuery(
-    () => db.products.orderBy('categoria').uniqueKeys() as unknown as Promise<string[]>,
-    [],
-  )
+  const categorie = useLiveQuery(async () => {
+    const products = await db.products.toArray()
+    const set = new Set<string>()
+    for (const p of products) {
+      if (p.categoria?.trim()) set.add(p.categoria.trim())
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b))
+  }, [])
   const [nome, setNome] = useState(product?.nome ?? '')
   const [categoria, setCategoria] = useState(product?.categoria ?? '')
   const [nuovaCategoria, setNuovaCategoria] = useState(false)
